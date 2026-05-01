@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { scoreInterview } from '@/lib/gemini';
 import { SessionScore } from '@/types';
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const { transcript, caseTitle, caseType } = await req.json();
@@ -12,9 +14,14 @@ export async function POST(req: NextRequest) {
 
     const raw = await scoreInterview(transcript, caseTitle || 'Unknown Case', caseType || 'General');
 
-    // Strip markdown code fences if present
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    const score: SessionScore = JSON.parse(cleaned);
+    // Extract JSON block robustly in case AI adds conversational text
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) {
+      console.error('Invalid AI Response:', raw);
+      throw new Error('No JSON object found in AI response');
+    }
+    
+    const score: SessionScore = JSON.parse(match[0]);
 
     return NextResponse.json({ score });
   } catch (err) {

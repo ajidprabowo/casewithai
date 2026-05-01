@@ -6,9 +6,12 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export function getGeminiModel() {
+export function getGeminiModel(systemInstruction?: string) {
   const modelName = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
-  return genAI.getGenerativeModel({ model: modelName });
+  return genAI.getGenerativeModel({ 
+    model: modelName,
+    ...(systemInstruction && { systemInstruction })
+  });
 }
 
 export async function generateText(prompt: string): Promise<string> {
@@ -22,14 +25,10 @@ export async function generateChatReply(
   systemPrompt: string,
   userMessage: string
 ): Promise<string> {
-  const model = getGeminiModel();
+  const model = getGeminiModel(systemPrompt);
 
   const chat = model.startChat({
     history,
-    systemInstruction: {
-      role: 'system',
-      parts: [{ text: systemPrompt }],
-    },
   });
 
   const result = await chat.sendMessage(userMessage);
