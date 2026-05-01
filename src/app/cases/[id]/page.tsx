@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, RotateCcw, CheckSquare, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, RotateCcw, CheckSquare, Loader2, ArrowLeft, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import { getCaseById } from '@/data/cases';
 import { ChatMessage } from '@/types';
@@ -21,6 +21,8 @@ export default function CaseSessionPage({ params }: { params: Promise<{ id: stri
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [score, setScore] = useState<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const sessionId = useRef(generateSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -113,6 +115,47 @@ export default function CaseSessionPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Speech Recognition. Please try using Google Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    const baseInput = input;
+
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event: any) => {
+      let currentTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      setInput(baseInput + (baseInput && currentTranscript ? ' ' : '') + currentTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
+
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -202,7 +245,17 @@ export default function CaseSessionPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {status === 'active' && (
-                  <div className="border-t border-gray-100 p-4 flex gap-3">
+                  <div className="border-t border-gray-100 p-4 flex gap-3 items-end">
+                    <button
+                      onClick={toggleListening}
+                      disabled={isLoading}
+                      title={isListening ? "Stop listening" : "Start speaking"}
+                      className={`flex-shrink-0 w-[44px] h-[44px] rounded-xl flex items-center justify-center transition-colors ${
+                        isListening ? 'bg-red-50 text-red-500 hover:bg-red-100 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                    </button>
                     <textarea
                       ref={textareaRef}
                       value={input}
@@ -216,7 +269,7 @@ export default function CaseSessionPage({ params }: { params: Promise<{ id: stri
                     <button
                       onClick={sendMessage}
                       disabled={!input.trim() || isLoading}
-                      className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-accent-dark disabled:opacity-40 transition-colors"
+                      className="flex-shrink-0 w-[44px] h-[44px] rounded-xl bg-accent text-white flex items-center justify-center hover:bg-accent-dark disabled:opacity-40 transition-colors"
                     >
                       <Send size={15} />
                     </button>
