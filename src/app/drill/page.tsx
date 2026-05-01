@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Timer, ChevronRight, RefreshCw, Send, Loader2 } from 'lucide-react';
+import { Timer, ChevronRight, RefreshCw, Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { DRILL_QUESTIONS, DRILL_CATEGORIES, getDrillsByCategory } from '@/data/drills';
 import { DrillQuestion } from '@/types';
 import { formatDuration, cn } from '@/lib/utils';
@@ -27,6 +27,8 @@ export default function DrillPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [timeTaken, setTimeTaken] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const drills = getDrillsByCategory(category);
 
@@ -86,6 +88,47 @@ Be specific, direct, and constructive. Format your response clearly.`;
     const data = await res.json();
     setIsLoading(false);
     setFeedback(data.reply || 'Error generating feedback.');
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Speech Recognition. Please try using Google Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    const baseInput = answer;
+
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event: any) => {
+      let currentTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      setAnswer(baseInput + (baseInput && currentTranscript ? ' ' : '') + currentTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
   };
 
   useEffect(() => {
@@ -216,12 +259,24 @@ Be specific, direct, and constructive. Format your response clearly.`;
                     rows={5}
                   />
                   <div className="flex justify-between items-center mt-3">
-                    <button
-                      onClick={() => startDrill(currentDrill)}
-                      className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
-                    >
-                      <RefreshCw size={12} /> Reset
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={toggleListening}
+                        disabled={isLoading}
+                        title={isListening ? "Stop listening" : "Start speaking"}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                          isListening ? 'bg-red-50 text-red-500 hover:bg-red-100 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                      </button>
+                      <button
+                        onClick={() => startDrill(currentDrill)}
+                        className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+                      >
+                        <RefreshCw size={12} /> Reset
+                      </button>
+                    </div>
                     <button
                       onClick={submitAnswer}
                       disabled={!answer.trim() || isLoading}

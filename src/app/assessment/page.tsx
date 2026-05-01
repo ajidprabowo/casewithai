@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
@@ -42,6 +42,8 @@ export default function AssessmentPage() {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const currentQIndex = step === 'q1' ? 0 : step === 'q2' ? 1 : step === 'q3' ? 2 : -1;
   const currentQ = currentQIndex >= 0 ? QUESTIONS[currentQIndex] : null;
@@ -111,6 +113,47 @@ Provide a comprehensive evaluation. Return your response as valid JSON ONLY with
     ? result.overallScore >= 75 ? 'text-green-600' : result.overallScore >= 55 ? 'text-yellow-600' : 'text-red-500'
     : '';
 
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Speech Recognition. Please try using Google Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    const baseInput = currentAnswer;
+
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event: any) => {
+      let currentTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      setCurrentAnswer(baseInput + (baseInput && currentTranscript ? ' ' : '') + currentTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
       {step === 'intro' && (
@@ -166,13 +209,24 @@ Provide a comprehensive evaluation. Return your response as valid JSON ONLY with
             <p className="text-xs text-gray-400 italic">{currentQ.timeHint}</p>
           </div>
 
-          <textarea
-            value={currentAnswer}
-            onChange={e => setCurrentAnswer(e.target.value)}
-            placeholder="Type your answer here…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none min-h-[180px] bg-white"
-            rows={6}
-          />
+          <div className="relative">
+            <textarea
+              value={currentAnswer}
+              onChange={e => setCurrentAnswer(e.target.value)}
+              placeholder="Type your answer here or click the microphone to speak…"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3.5 pb-14 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none min-h-[180px] bg-white"
+              rows={6}
+            />
+            <button
+              onClick={toggleListening}
+              title={isListening ? "Stop listening" : "Start speaking"}
+              className={`absolute bottom-3 right-3 flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                isListening ? 'bg-red-50 text-red-500 hover:bg-red-100 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          </div>
 
           <div className="flex items-center justify-between mt-4">
             <button
