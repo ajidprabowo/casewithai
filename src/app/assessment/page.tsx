@@ -11,7 +11,7 @@ const QUESTIONS = [
   {
     id: 'q1',
     label: 'Profitability',
-    prompt: 'A grocery chain's profits have fallen 30% in 2 years despite flat revenue. Walk me through how you'd approach diagnosing this problem.',
+    prompt: "A grocery chain's profits have fallen 30% in 2 years despite flat revenue. Walk me through how you'd approach diagnosing this problem.",
     timeHint: 'Take your time — aim for a structured, clear response.',
   },
   {
