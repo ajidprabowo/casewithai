@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
