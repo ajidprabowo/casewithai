@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Clock, Lock, PlayCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
 import { CONSULTING_COURSE } from '@/data/course';
 import { cn } from '@/lib/utils';
 
@@ -199,9 +200,9 @@ function ModuleAccordion({
             </a>
           ) : (
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-1.5 text-sm font-semibold text-white bg-accent px-4 py-2 rounded-lg hover:bg-accent-dark transition-colors">
+              <Link href={`/course/${mod.id}`} className="flex items-center gap-1.5 text-sm font-semibold text-white bg-accent px-4 py-2 rounded-lg hover:bg-accent-dark transition-colors">
                 <PlayCircle size={14} /> Start Module
-              </button>
+              </Link>
               <button
                 onClick={onMarkComplete}
                 className={cn(
