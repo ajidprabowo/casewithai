@@ -26,7 +26,10 @@ export async function generateChatReply(
 
   const chat = model.startChat({
     history,
-    systemInstruction: systemPrompt,
+    systemInstruction: {
+      role: 'system',
+      parts: [{ text: systemPrompt }],
+    },
   });
 
   const result = await chat.sendMessage(userMessage);
