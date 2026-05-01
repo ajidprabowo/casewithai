@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { Send, RotateCcw, CheckSquare, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getCaseById } from '@/data/cases';
@@ -12,10 +12,8 @@ import { generateSessionId } from '@/lib/utils';
 
 type SessionStatus = 'idle' | 'active' | 'scoring' | 'scored';
 
-export default function CaseSessionPage() {
-  const params = useParams();
-  const router = useRouter();
-  const caseId = params.id as string;
+export default function CaseSessionPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: caseId } = use(params);
   const scenario = getCaseById(caseId);
 
   const [status, setStatus] = useState<SessionStatus>('idle');
@@ -171,14 +169,10 @@ export default function CaseSessionPage() {
             </div>
           ) : (
             <>
-              {/* Messages */}
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col" style={{ height: '520px' }}>
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
                   {messages.map((m, i) => (
-                    <div
-                      key={i}
-                      className={`flex gap-3 message-in ${m.role === 'user' ? 'flex-row-reverse' : ''}`}
-                    >
+                    <div key={i} className={`flex gap-3 message-in ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                       <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
                         ${m.role === 'assistant' ? 'bg-gray-900 text-white' : 'bg-accent text-white'}`}>
                         {m.role === 'assistant' ? 'AI' : 'You'}
@@ -207,7 +201,6 @@ export default function CaseSessionPage() {
                   <div ref={bottomRef} />
                 </div>
 
-                {/* Input */}
                 {status === 'active' && (
                   <div className="border-t border-gray-100 p-4 flex gap-3">
                     <textarea
@@ -257,7 +250,7 @@ export default function CaseSessionPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between"><span className="text-gray-400">Industry</span><span className="font-medium">{scenario.industry}</span></div>
                   <div className="flex justify-between"><span className="text-gray-400">Duration</span><span className="font-medium">~{scenario.estimatedMinutes} min</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Format</span><span className="font-medium capitalize">Interviewer-led</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Format</span><span className="font-medium">Interviewer-led</span></div>
                 </div>
               </div>
               <div className="bg-accent-light border border-accent/20 rounded-2xl p-5">
@@ -267,7 +260,7 @@ export default function CaseSessionPage() {
                     'State your structure before diving in',
                     'Quantify your hypotheses',
                     'Summarize key insights proactively',
-                    'It\'s OK to take 30 seconds to think',
+                    "It's OK to take 30 seconds to think",
                   ].map(t => (
                     <li key={t} className="text-xs text-gray-600 flex gap-1.5">
                       <span className="text-accent">→</span>{t}
